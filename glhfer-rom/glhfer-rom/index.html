@@ -78,7 +78,7 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
 
   <div class="panel">
     <label for="glhfer">Value of 1 GLHFER in ETH</label>
-    <div class="row"><span>GLHFER =</span><input id="glhfer" type="number" inputmode="decimal" step="any" placeholder="Loading GLHF floor…"></div>
+    <div class="row"><span>GLHFER =</span><input id="glhfer" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Loading GLHF floor…"><span>ETH</span></div>
     <div class="row" style="flex-wrap:wrap;justify-content:space-between"><span id="gsrc" class="note" style="font:inherit;font-size:.85rem;color:var(--muted)">Loading GLHF floor…</span><button id="usefloor" type="button" class="ghost" disabled>Reset to GLHF floor</button></div>
   </div>
 
@@ -226,7 +226,8 @@ function showGsrc(){
   el.innerHTML=custom?`Custom value. ${link}: ${eth(GLHF.floor)} ${esc(GLHF.currency||"ETH")}`:`Using ${link}: ${eth(GLHF.floor)} ${esc(GLHF.currency||"ETH")}`;
 }
 function setG(v,isCustom){$("glhfer").value=v;custom=isCustom;renderPrices();renderWallet();if(GLHF)showGsrc()}
-$("glhfer").addEventListener("input",()=>setG($("glhfer").value,true));
+// Typing: only recalculate, never rewrite the box (so "0." or "0,3" can be typed)
+$("glhfer").addEventListener("input",()=>{custom=true;renderPrices();renderWallet();if(GLHF)showGsrc()});
 $("refresh").addEventListener("click",()=>loadFloors(true));
 $("usefloor").addEventListener("click",()=>{if(GLHF)setG(+GLHF.floor.toFixed(6),false)});
 try{const ad=localStorage.getItem("addr");if(ad)$("addr").value=ad}catch(_){}
