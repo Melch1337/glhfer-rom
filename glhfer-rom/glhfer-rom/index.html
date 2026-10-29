@@ -73,7 +73,7 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
     <div id="wresult" hidden>
       <div class="total"><span id="wcount"></span><b id="wtotal"></b></div>
       <div class="scroll"><table>
-        <thead><tr><th>ROM</th><th class="n">Qty</th><th class="n">Each (ETH)</th><th class="n">Value (ETH)</th><th class="n">At floor</th></tr></thead>
+        <thead><tr><th>ROM</th><th class="n">Qty</th><th class="n">Points</th><th class="n">Each (ETH)</th><th class="n">Value (ETH)</th><th class="n">At floor</th></tr></thead>
         <tbody id="wrows"></tbody>
       </table></div>
       <p id="wfloor" class="note"></p>
@@ -126,16 +126,17 @@ function renderWallet(){
     (groups[key]||(groups[key]={tier,mem,qty:0})).qty++;
   }
   const order=k=>{const i=ROMS.findIndex(([t,m])=>t+"|"+m===k);return i<0?(k==="Giga|"?50:99):i};
-  let total=0,unpriced=0,ftotal=0,fmissing=0;
+  let total=0,unpriced=0,ftotal=0,fmissing=0,points=0;
   const rows=Object.entries(groups).sort((a,b)=>order(a[0])-order(b[0])).map(([k,gr])=>{
     const p=PTS[k],each=p?p/24*x:NaN,val=p?each*gr.qty:NaN;
+    if(p)points+=p*gr.qty;
     if(p)total+=val;else unpriced+=gr.qty;
     const f=FLOORS[k],fv=f&&f.floor!=null?f.floor*gr.qty:NaN;
     if(Number.isFinite(fv))ftotal+=fv;else fmissing+=gr.qty;
-    return `<tr><td><span class="tier ${esc(gr.tier)}"></span>${esc(gr.tier)} ${esc(nice(gr.mem))}</td><td class="n">${gr.qty}</td><td class="n v">${p?fmt(each):"–"}</td><td class="n v">${p?fmt(val):"–"}</td><td class="n v">${Number.isFinite(fv)?eth(fv):"–"}</td></tr>`;
+    return `<tr><td><span class="tier ${esc(gr.tier)}"></span>${esc(gr.tier)} ${esc(nice(gr.mem))}</td><td class="n">${gr.qty}</td><td class="n v">${p?p*gr.qty:"–"}</td><td class="n v">${p?fmt(each):"–"}</td><td class="n v">${p?fmt(val):"–"}</td><td class="n v">${Number.isFinite(fv)?eth(fv):"–"}</td></tr>`;
   });
-  $("wrows").innerHTML=rows.join("")||`<tr><td colspan="5" class="note">No ROMs in this wallet.</td></tr>`;
-  $("wcount").textContent=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"}`+(unpriced?` (${unpriced} not priced)`:"");
+  $("wrows").innerHTML=rows.join("")||`<tr><td colspan="6" class="note">No ROMs in this wallet.</td></tr>`;
+  $("wcount").innerHTML=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"} · <strong>${points} points</strong> = ${fmt(points/24)} GLHFER`+(unpriced?` (${unpriced} not priced)`:"");
   $("wtotal").textContent=fmt(total)+" ETH";
   $("wfloor").textContent=Object.keys(FLOORS).length&&lastRoms.length?`At floor: ${eth(ftotal)} ${FCUR}`+(fmissing?` (${fmissing} ROM${fmissing===1?"":"s"} with no listing)`:""):"";
   $("wresult").hidden=false;
