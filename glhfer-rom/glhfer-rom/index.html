@@ -61,6 +61,7 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
     <label for="glhfer">Value of 1 GLHFER in ETH (= Void 128 MB, 24 pts)</label>
     <div class="row"><span>GLHFER =</span><input id="glhfer" type="number" inputmode="decimal" step="any" placeholder="Loading GLHF floor…"></div>
     <div class="row" style="flex-wrap:wrap;justify-content:space-between"><span id="gsrc" class="note" style="font:inherit;font-size:.85rem;color:var(--muted)">Loading GLHF floor…</span><button id="usefloor" type="button" class="ghost" disabled>Reset to GLHF floor</button></div>
+    <p id="strat" class="note">Loading GLHFSTR price…</p>
   </div>
 
   <section class="panel">
@@ -89,7 +90,7 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
       </div>
     </div>
     <div class="scroll"><table>
-      <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value (ETH)</th><th class="n">Floor</th></tr></thead>
+      <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value (ETH)</th><th class="n">GLHFSTR</th><th class="n">Floor</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
     <p class="note">Floors are the cheapest OpenSea listing per Tier + Memory. They refresh every hour on their own; Update floors fetches them right now. Giga is a one-of-one with no point value, so it only shows a floor.</p>
@@ -104,17 +105,27 @@ const $=id=>document.getElementById(id);
 const fmt=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
 const nice=m=>m.replace(/(\d+)\s*MB/i,"$1 MB");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let lastRoms=null,FLOORS={},FCUR="ETH",FTIME=null,GLHF=null,custom=false;
+let lastRoms=null,FLOORS={},FCUR="ETH",FTIME=null,GLHF=null,STRAT=null,custom=false;
+const big=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:0}):"–";
+const strat=eth=>STRAT&&Number.isFinite(eth)?eth/STRAT.eth:NaN;
 const CONTRACT="0x59eec556cef447e13edf4bfd3d4433d8dad8a7a5";
 const eth=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
 const fcell=k=>{const f=FLOORS[k];if(!f||f.floor==null)return "–";const v=`${eth(f.floor)} ${esc(f.currency||FCUR)}`;return f.tokenId?`<a href="https://opensea.io/item/abstract/${CONTRACT}/${esc(f.tokenId)}" target="_blank" rel="noopener">${v}</a>`:v};
 
 function g(){return parseFloat($("glhfer").value)}
 
+function renderStrat(){
+  const el=$("strat");
+  if(!STRAT){el.textContent=FTIME?"GLHFSTR price unavailable right now.":"Loading GLHFSTR price…";return}
+  const x=g();
+  el.innerHTML=`1 GLHFSTR = ${STRAT.eth.toPrecision(3)} ETH ($${STRAT.usd.toPrecision(3)}) · <strong>1 GLHFER = ${big(strat(x))} GLHFSTR</strong>`;
+}
+
 function renderPrices(){
   const x=g();
-  $("rows").innerHTML=ROMS.map(([t,m,p])=>`<tr><td><span class="tier ${t}"></span>${t} ${nice(m)}</td><td class="n">${p}</td><td class="n f">${FX[p]}</td><td class="n v">${fmt(p/24*x)}</td><td class="n v">${fcell(t+"|"+m)}</td></tr>`).join("")
-   +`<tr><td><span class="tier Giga"></span>Giga</td><td class="n">–</td><td class="n f">–</td><td class="n v">–</td><td class="n v">${fcell("Giga|")}</td></tr>`;
+  renderStrat();
+  $("rows").innerHTML=ROMS.map(([t,m,p])=>`<tr><td><span class="tier ${t}"></span>${t} ${nice(m)}</td><td class="n">${p}</td><td class="n f">${FX[p]}</td><td class="n v">${fmt(p/24*x)}</td><td class="n v">${big(strat(p/24*x))}</td><td class="n v">${fcell(t+"|"+m)}</td></tr>`).join("")
+   +`<tr><td><span class="tier Giga"></span>Giga</td><td class="n">–</td><td class="n f">–</td><td class="n v">–</td><td class="n v">–</td><td class="n v">${fcell("Giga|")}</td></tr>`;
 }
 
 function renderWallet(){
@@ -136,7 +147,7 @@ function renderWallet(){
     return `<tr><td><span class="tier ${esc(gr.tier)}"></span>${esc(gr.tier)} ${esc(nice(gr.mem))}</td><td class="n">${gr.qty}</td><td class="n v">${p?p*gr.qty:"–"}</td><td class="n v">${p?fmt(each):"–"}</td><td class="n v">${p?fmt(val):"–"}</td><td class="n v">${Number.isFinite(fv)?eth(fv):"–"}</td></tr>`;
   });
   $("wrows").innerHTML=rows.join("")||`<tr><td colspan="6" class="note">No ROMs in this wallet.</td></tr>`;
-  $("wcount").innerHTML=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"} · <strong>${points} points</strong> = ${fmt(points/24)} GLHFER`+(unpriced?` (${unpriced} not priced)`:"");
+  $("wcount").innerHTML=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"} · <strong>${points} points</strong> = ${fmt(points/24)} GLHFER`+(STRAT?` ≈ ${big(strat(total))} GLHFSTR`:"")+(unpriced?` (${unpriced} not priced)`:"");
   $("wtotal").textContent=fmt(total)+" ETH";
   $("wfloor").textContent=Object.keys(FLOORS).length&&lastRoms.length?`At floor: ${eth(ftotal)} ${FCUR}`+(fmissing?` (${fmissing} ROM${fmissing===1?"":"s"} with no listing)`:""):"";
   $("wresult").hidden=false;
@@ -154,6 +165,7 @@ async function loadFloors(fresh){
     FLOORS={};for(const f of j.floors){FLOORS[f.tier+"|"+(f.memory||"")]=f;if(f.currency)FCUR=f.currency}
     FTIME=new Date(j.updatedAt);showFtime();
     GLHF=j.glhf&&j.glhf.floor!=null?j.glhf:null;
+    STRAT=j.strategy&&j.strategy.eth>0?j.strategy:null;
     $("usefloor").disabled=!GLHF;
     if(GLHF&&!custom)setG(+GLHF.floor.toFixed(6),false);
     showGsrc();
