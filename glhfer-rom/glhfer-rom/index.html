@@ -9,13 +9,13 @@
 <style>
 :root{
   --bg:#f3f4f7;--panel:#ffffff;--fg:#1a1d26;--muted:#646a7a;--line:#dfe2ea;--err:#c0392b;
-  --silver:#8a93a6;--gold:#b8860b;--void:#6b3fd4;--giga:#d0367a;--accent:#3a4ee0;--onaccent:#fff;--warn:#b45309;--warnbg:#fff7e6;
+  --silver:#8a93a6;--gold:#b8860b;--void:#6b3fd4;--giga:#d0367a;--accent:#3a4ee0;--onaccent:#fff;--warn:#b45309;--warnbg:#fff7e6;--good:#15803d;--goodbg:#ecfdf3;--ongood:#fff;
   --display:"Chakra Petch",system-ui,sans-serif;--body:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#0f1117;--panel:#171a23;--fg:#e8eaf2;--muted:#9aa0b2;--line:#2a2f3c;--err:#ff7b6b;
-  --silver:#b4bccc;--gold:#e0b341;--void:#a98bff;--giga:#ff6fa8;--accent:#7f8cff;--onaccent:#0f1117;--warn:#f5a524;--warnbg:#2a1f0a;color-scheme:dark}}
+  --silver:#b4bccc;--gold:#e0b341;--void:#a98bff;--giga:#ff6fa8;--accent:#7f8cff;--onaccent:#0f1117;--warn:#f5a524;--warnbg:#2a1f0a;--good:#4ade80;--goodbg:#0f2a1a;--ongood:#0f1117;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
 .wrap{max-width:600px;margin:0 auto;padding:32px 16px 48px;display:grid;gap:22px}
@@ -48,6 +48,11 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
 .total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .total b{font:700 1.6rem var(--display)}
 .scroll{overflow-x:auto}
+.badge{display:inline-block;font:700 .68rem var(--body);text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:var(--good);color:var(--ongood);vertical-align:middle;white-space:nowrap}
+.bestrow td{background:var(--goodbg)}
+.under{color:var(--good);font-weight:600}
+.over{color:var(--err)}
+.bestbox{border:2px solid var(--good);background:var(--goodbg);border-radius:10px;padding:12px 14px;margin:0}
 .warn{border:2px solid var(--warn);background:var(--warnbg);border-radius:10px;padding:16px;display:grid;gap:6px}
 .warn h2{color:var(--warn);font-size:1.25rem}
 .warn p{margin:0}
@@ -103,11 +108,13 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
         <button id="refresh" type="button">Update floors</button>
       </div>
     </div>
+    <p id="bestval" class="bestbox" hidden></p>
     <div class="scroll"><table>
-      <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value (ETH)</th><th class="n">Floor</th></tr></thead>
+      <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value (ETH)</th><th class="n">Floor</th><th class="n">ETH / point</th><th class="n">Floor vs value</th><th class="n">Rank</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
     <p class="note">Values use the confirmed ROM ratios. Floors are the cheapest OpenSea listing per Tier + Memory. They refresh every hour on their own; Update floors fetches them right now. Giga is a one-of-one with no point value, so it only shows a floor.</p>
+    <p class="note"><strong>Best value</strong> = the lowest floor price per point. <strong>Floor vs value</strong> compares the floor to the ROM's value in GLHFER: green (below 0%) means the floor is cheaper than its GLHFER value.</p>
   </section>
 </div>
 
@@ -130,8 +137,25 @@ function g(){return parseFloat($("glhfer").value)}
 
 function renderPrices(){
   const x=g();
-  $("rows").innerHTML=ROMS.map(([t,m])=>`<tr><td><span class="tier ${t}"></span>${t} ${nice(m)}</td><td class="n">${fmt(PTS[t+"|"+m])}</td><td class="n f">${fmt(PTS[t+"|"+m]/BASE)}</td><td class="n v">${fmt(PTS[t+"|"+m]/BASE*x)}</td><td class="n v">${fcell(t+"|"+m)}</td></tr>`).join("")
-   +`<tr><td><span class="tier Giga"></span>Giga</td><td class="n">–</td><td class="n f">–</td><td class="n v">–</td><td class="n v">${fcell("Giga|")}</td></tr>`;
+  // Value for money: floor price per point (lower = better)
+  const per={};
+  for(const [t,m] of ROMS){const k=t+"|"+m,f=FLOORS[k];if(f&&f.floor!=null&&PTS[k]>0)per[k]=f.floor/PTS[k]}
+  const ranked=Object.keys(per).sort((a,b)=>per[a]-per[b]);
+  const best=ranked[0],rank=Object.fromEntries(ranked.map((k,i)=>[k,i+1]));
+  const vsCell=k=>{
+    if(!(k in per)||!(x>0))return "–";
+    const d=(per[k]*BASE/x-1)*100; // floor vs GLHFER value
+    const cls=d<=0?"under":"over";
+    return `<span class="${cls}">${d>0?"+":""}${d.toFixed(0)}%</span>`;
+  };
+  $("rows").innerHTML=ROMS.map(([t,m])=>{const k=t+"|"+m,isBest=k===best;
+    return `<tr${isBest?' class="bestrow"':''}><td><span class="tier ${t}"></span>${t} ${nice(m)}${isBest?' <span class="badge">Best value</span>':''}</td><td class="n">${fmt(PTS[k])}</td><td class="n f">${fmt(PTS[k]/BASE)}</td><td class="n v">${fmt(PTS[k]/BASE*x)}</td><td class="n v">${fcell(k)}</td><td class="n v">${k in per?per[k].toFixed(5):"–"}</td><td class="n v">${vsCell(k)}</td><td class="n">${rank[k]||"–"}</td></tr>`}).join("")
+   +`<tr><td><span class="tier Giga"></span>Giga</td><td class="n">–</td><td class="n f">–</td><td class="n v">–</td><td class="n v">${fcell("Giga|")}</td><td class="n v">–</td><td class="n v">–</td><td class="n">–</td></tr>`;
+  const bv=$("bestval");
+  if(best){const [t,m]=best.split("|"),f=FLOORS[best];
+    bv.hidden=false;
+    bv.innerHTML=`<span class="badge">Best value now</span> <strong>${t} ${nice(m)}</strong> at ${eth(f.floor)} ETH: <strong>${per[best].toFixed(5)} ETH per point</strong>${x>0?`, ${vsCell(best)} vs its GLHFER value`:""}.${ranked[1]?` Runner-up: ${ranked[1].split("|").join(" ").replace(/(\d+)MB/,"$1 MB")} (${per[ranked[1]].toFixed(5)} ETH/pt).`:""}`;
+  }else bv.hidden=true;
 }
 
 function renderWallet(){
