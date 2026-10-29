@@ -9,13 +9,13 @@
 <style>
 :root{
   --bg:#f3f4f7;--panel:#ffffff;--fg:#1a1d26;--muted:#646a7a;--line:#dfe2ea;--err:#c0392b;
-  --silver:#8a93a6;--gold:#b8860b;--void:#6b3fd4;--giga:#d0367a;--accent:#3a4ee0;--onaccent:#fff;
+  --silver:#8a93a6;--gold:#b8860b;--void:#6b3fd4;--giga:#d0367a;--accent:#3a4ee0;--onaccent:#fff;--warn:#b45309;--warnbg:#fff7e6;
   --display:"Chakra Petch",system-ui,sans-serif;--body:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#0f1117;--panel:#171a23;--fg:#e8eaf2;--muted:#9aa0b2;--line:#2a2f3c;--err:#ff7b6b;
-  --silver:#b4bccc;--gold:#e0b341;--void:#a98bff;--giga:#ff6fa8;--accent:#7f8cff;--onaccent:#0f1117;color-scheme:dark}}
+  --silver:#b4bccc;--gold:#e0b341;--void:#a98bff;--giga:#ff6fa8;--accent:#7f8cff;--onaccent:#0f1117;--warn:#f5a524;--warnbg:#2a1f0a;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
 .wrap{max-width:600px;margin:0 auto;padding:32px 16px 48px;display:grid;gap:22px}
@@ -48,21 +48,51 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
 .total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .total b{font:700 1.6rem var(--display)}
 .scroll{overflow-x:auto}
+.warn{border:2px solid var(--warn);background:var(--warnbg);border-radius:10px;padding:16px;display:grid;gap:6px}
+.warn h2{color:var(--warn);font-size:1.25rem}
+.warn p{margin:0}
+.warn ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.ratios{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ratios label{display:grid;gap:4px;text-transform:none;letter-spacing:0;font-size:.85rem;color:var(--fg);font-weight:600}
+.ratios input{font-size:1rem;padding:8px 10px}
+.edited{border-color:var(--warn)!important}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>GLHFER ROM Value</h1>
-    <p class="sub">24 points = 1 GLHFER. By default 1 GLHFER = the GLHF floor on Ethereum. Type your own value to override it.</p>
+    <p class="sub">By default 1 GLHFER = the GLHF floor on Ethereum. Every value and ratio on this page can be changed.</p>
   </header>
 
+  <section class="warn" role="alert">
+    <h2>⚠ Unofficial and speculative</h2>
+    <p><strong>The ROM ratios have not been released or confirmed.</strong> Every number on this page is a guess based on community estimates and may be completely wrong.</p>
+    <ul>
+      <li>The points per ROM, the GLHFER value and the GLHFSTR ratio are assumptions. Adjust them below to test your own.</li>
+      <li>Floors and token prices come from OpenSea and GeckoTerminal and can be outdated or incorrect.</li>
+      <li>This is not financial advice. Do your own research before buying, selling or trading anything.</li>
+    </ul>
+  </section>
+
   <div class="panel">
-    <label for="glhfer">Value of 1 GLHFER in ETH (= Void 128 MB, 24 pts)</label>
+    <label for="glhfer">Value of 1 GLHFER in ETH</label>
     <div class="row"><span>GLHFER =</span><input id="glhfer" type="number" inputmode="decimal" step="any" placeholder="Loading GLHF floor…"></div>
     <div class="row" style="flex-wrap:wrap;justify-content:space-between"><span id="gsrc" class="note" style="font:inherit;font-size:.85rem;color:var(--muted)">Loading GLHF floor…</span><button id="usefloor" type="button" class="ghost" disabled>Reset to GLHF floor</button></div>
-    <p id="strat" class="note">Loading GLHFSTR price…</p>
   </div>
+
+  <section class="panel">
+    <h2>Ratios (speculative)</h2>
+    <p class="note">Change any number to try your own ratios. Changed fields are outlined. Your changes are saved in this browser only.</p>
+    <div class="ratios" id="ratios"></div>
+    <div class="row" style="flex-wrap:wrap;gap:10px">
+      <label for="glhfstr" style="text-transform:none;letter-spacing:0;font-size:.85rem;color:var(--fg)">1 GLHFER =</label>
+      <input id="glhfstr" type="number" inputmode="decimal" step="any" min="0" style="max-width:180px">
+      <span class="note" style="font:inherit">GLHFSTR</span>
+    </div>
+    <p id="strat" class="note">Loading GLHFSTR price…</p>
+    <div class="row" style="flex-wrap:wrap"><button id="resetratios" type="button" class="ghost">Reset all ratios to defaults</button></div>
+  </section>
 
   <section class="panel">
     <h2>Wallet checker</h2>
@@ -93,21 +123,26 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
       <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value (ETH)</th><th class="n">GLHFSTR</th><th class="n">Floor</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
-    <p class="note">Floors are the cheapest OpenSea listing per Tier + Memory. They refresh every hour on their own; Update floors fetches them right now. Giga is a one-of-one with no point value, so it only shows a floor.</p>
+    <p class="note">Values use your current ratios, which are speculative. Floors are the cheapest OpenSea listing per Tier + Memory. They refresh every hour on their own; Update floors fetches them right now. Giga is a one-of-one with no point value, so it only shows a floor.</p>
   </section>
 </div>
 
 <script>
 const ROMS=[["Silver","8MB",3],["Silver","16MB",4],["Silver","32MB",5],["Gold","32MB",6],["Gold","64MB",8],["Gold","128MB",12],["Void","128MB",24],["Void","256MB",30],["Void","512MB",36]];
-const FX={3:"1/8",4:"1/6",5:"5/24",6:"1/4",8:"1/3",12:"1/2",24:"1",30:"1.25",36:"1.5"};
-const PTS=Object.fromEntries(ROMS.map(([t,m,p])=>[t+"|"+m,p]));
+const DEF_PTS=Object.fromEntries(ROMS.map(([t,m,p])=>[t+"|"+m,p]));
+const DEF_BASE=24;
+let PTS={...DEF_PTS},BASE=DEF_BASE,STR_CUSTOM=null;
+try{const sv=JSON.parse(localStorage.getItem("ratios")||"null");if(sv){if(sv.pts)for(const k in sv.pts)if(k in PTS&&sv.pts[k]>=0)PTS[k]=+sv.pts[k];if(sv.base>0)BASE=+sv.base;if(sv.str>0)STR_CUSTOM=+sv.str}}catch(_){}
+function saveRatios(){try{localStorage.setItem("ratios",JSON.stringify({pts:PTS,base:BASE,str:STR_CUSTOM}))}catch(_){}}
 const $=id=>document.getElementById(id);
 const fmt=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
 const nice=m=>m.replace(/(\d+)\s*MB/i,"$1 MB");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let lastRoms=null,FLOORS={},FCUR="ETH",FTIME=null,GLHF=null,STRAT=null,custom=false;
 const big=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:0}):"–";
-const strat=eth=>STRAT&&Number.isFinite(eth)?eth/STRAT.eth:NaN;
+// GLHFSTR per 1 GLHFER: your own number if set, otherwise market (GLHFER value / GLHFSTR price)
+const strPer=()=>STR_CUSTOM!=null?STR_CUSTOM:(STRAT?g()/STRAT.eth:NaN);
+const strat=eth=>{const x=g(),r=strPer();return Number.isFinite(eth)&&x>0&&Number.isFinite(r)?eth/x*r:NaN};
 const CONTRACT="0x59eec556cef447e13edf4bfd3d4433d8dad8a7a5";
 const eth=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
 const fcell=k=>{const f=FLOORS[k];if(!f||f.floor==null)return "–";const v=`${eth(f.floor)} ${esc(f.currency||FCUR)}`;return f.tokenId?`<a href="https://opensea.io/item/abstract/${CONTRACT}/${esc(f.tokenId)}" target="_blank" rel="noopener">${v}</a>`:v};
@@ -115,16 +150,38 @@ const fcell=k=>{const f=FLOORS[k];if(!f||f.floor==null)return "–";const v=`${e
 function g(){return parseFloat($("glhfer").value)}
 
 function renderStrat(){
-  const el=$("strat");
-  if(!STRAT){el.textContent=FTIME?"GLHFSTR price unavailable right now.":"Loading GLHFSTR price…";return}
-  const x=g();
-  el.innerHTML=`1 GLHFSTR = ${STRAT.eth.toPrecision(3)} ETH ($${STRAT.usd.toPrecision(3)}) · <strong>1 GLHFER = ${big(strat(x))} GLHFSTR</strong>`;
+  const el=$("strat"),inp=$("glhfstr");
+  const market=STRAT&&g()>0?g()/STRAT.eth:NaN;
+  if(document.activeElement!==inp)inp.value=STR_CUSTOM!=null?STR_CUSTOM:(Number.isFinite(market)?Math.round(market):"");
+  inp.classList.toggle("edited",STR_CUSTOM!=null);
+  const price=STRAT?`1 GLHFSTR = ${STRAT.eth.toPrecision(3)} ETH ($${STRAT.usd.toPrecision(3)}). `:(FTIME?"GLHFSTR price unavailable right now. ":"Loading GLHFSTR price… ");
+  el.textContent=price+(STR_CUSTOM!=null?`Using your own ratio. Market ratio: ${Number.isFinite(market)?big(market):"–"} GLHFSTR.`:"Using the market ratio (GLHFER value ÷ GLHFSTR price).");
+}
+
+function buildRatios(){
+  const cells=ROMS.map(([t,m])=>{const k=t+"|"+m,id="pts-"+t+m;return `<label for="${id}"><span><span class="tier ${t}"></span>${t} ${nice(m)} points</span><input id="${id}" data-k="${k}" type="number" inputmode="decimal" step="any" min="0"></label>`});
+  cells.push(`<label for="pts-base"><span>Points per 1 GLHFER</span><input id="pts-base" type="number" inputmode="decimal" step="any" min="0"></label>`);
+  $("ratios").innerHTML=cells.join("");
+  syncRatioInputs();
+  $("ratios").addEventListener("input",e=>{
+    const v=parseFloat(e.target.value);
+    if(e.target.id==="pts-base"){if(v>0)BASE=v}else if(e.target.dataset.k&&v>=0)PTS[e.target.dataset.k]=v;
+    markEdited();saveRatios();renderPrices();renderWallet();
+  });
+}
+function syncRatioInputs(){
+  for(const inp of $("ratios").querySelectorAll("input[data-k]"))inp.value=PTS[inp.dataset.k];
+  $("pts-base").value=BASE;markEdited();
+}
+function markEdited(){
+  for(const inp of $("ratios").querySelectorAll("input[data-k]"))inp.classList.toggle("edited",PTS[inp.dataset.k]!==DEF_PTS[inp.dataset.k]);
+  $("pts-base").classList.toggle("edited",BASE!==DEF_BASE);
 }
 
 function renderPrices(){
   const x=g();
   renderStrat();
-  $("rows").innerHTML=ROMS.map(([t,m,p])=>`<tr><td><span class="tier ${t}"></span>${t} ${nice(m)}</td><td class="n">${p}</td><td class="n f">${FX[p]}</td><td class="n v">${fmt(p/24*x)}</td><td class="n v">${big(strat(p/24*x))}</td><td class="n v">${fcell(t+"|"+m)}</td></tr>`).join("")
+  $("rows").innerHTML=ROMS.map(([t,m])=>`<tr><td><span class="tier ${t}"></span>${t} ${nice(m)}</td><td class="n">${fmt(PTS[t+"|"+m])}</td><td class="n f">${fmt(PTS[t+"|"+m]/BASE)}</td><td class="n v">${fmt(PTS[t+"|"+m]/BASE*x)}</td><td class="n v">${big(strat(PTS[t+"|"+m]/BASE*x))}</td><td class="n v">${fcell(t+"|"+m)}</td></tr>`).join("")
    +`<tr><td><span class="tier Giga"></span>Giga</td><td class="n">–</td><td class="n f">–</td><td class="n v">–</td><td class="n v">–</td><td class="n v">${fcell("Giga|")}</td></tr>`;
 }
 
@@ -139,15 +196,15 @@ function renderWallet(){
   const order=k=>{const i=ROMS.findIndex(([t,m])=>t+"|"+m===k);return i<0?(k==="Giga|"?50:99):i};
   let total=0,unpriced=0,ftotal=0,fmissing=0,points=0;
   const rows=Object.entries(groups).sort((a,b)=>order(a[0])-order(b[0])).map(([k,gr])=>{
-    const p=PTS[k],each=p?p/24*x:NaN,val=p?each*gr.qty:NaN;
+    const p=PTS[k],each=p?p/BASE*x:NaN,val=p?each*gr.qty:NaN;
     if(p)points+=p*gr.qty;
     if(p)total+=val;else unpriced+=gr.qty;
     const f=FLOORS[k],fv=f&&f.floor!=null?f.floor*gr.qty:NaN;
     if(Number.isFinite(fv))ftotal+=fv;else fmissing+=gr.qty;
-    return `<tr><td><span class="tier ${esc(gr.tier)}"></span>${esc(gr.tier)} ${esc(nice(gr.mem))}</td><td class="n">${gr.qty}</td><td class="n v">${p?p*gr.qty:"–"}</td><td class="n v">${p?fmt(each):"–"}</td><td class="n v">${p?fmt(val):"–"}</td><td class="n v">${Number.isFinite(fv)?eth(fv):"–"}</td></tr>`;
+    return `<tr><td><span class="tier ${esc(gr.tier)}"></span>${esc(gr.tier)} ${esc(nice(gr.mem))}</td><td class="n">${gr.qty}</td><td class="n v">${p?fmt(p*gr.qty):"–"}</td><td class="n v">${p?fmt(each):"–"}</td><td class="n v">${p?fmt(val):"–"}</td><td class="n v">${Number.isFinite(fv)?eth(fv):"–"}</td></tr>`;
   });
   $("wrows").innerHTML=rows.join("")||`<tr><td colspan="6" class="note">No ROMs in this wallet.</td></tr>`;
-  $("wcount").innerHTML=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"} · <strong>${points} points</strong> = ${fmt(points/24)} GLHFER`+(STRAT?` ≈ ${big(strat(total))} GLHFSTR`:"")+(unpriced?` (${unpriced} not priced)`:"");
+  $("wcount").innerHTML=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"} · <strong>${fmt(points)} points</strong> = ${fmt(points/BASE)} GLHFER`+(STRAT?` ≈ ${big(strat(total))} GLHFSTR`:"")+(unpriced?` (${unpriced} not priced)`:"");
   $("wtotal").textContent=fmt(total)+" ETH";
   $("wfloor").textContent=Object.keys(FLOORS).length&&lastRoms.length?`At floor: ${eth(ftotal)} ${FCUR}`+(fmissing?` (${fmissing} ROM${fmissing===1?"":"s"} with no listing)`:""):"";
   $("wresult").hidden=false;
@@ -199,6 +256,9 @@ function showGsrc(){
 function setG(v,isCustom){$("glhfer").value=v;custom=isCustom;renderPrices();renderWallet();if(GLHF)showGsrc()}
 $("glhfer").addEventListener("input",()=>setG($("glhfer").value,true));
 $("refresh").addEventListener("click",()=>loadFloors(true));
+$("glhfstr").addEventListener("input",()=>{const v=parseFloat($("glhfstr").value);STR_CUSTOM=v>0?v:null;saveRatios();renderPrices();renderWallet()});
+$("resetratios").addEventListener("click",()=>{PTS={...DEF_PTS};BASE=DEF_BASE;STR_CUSTOM=null;saveRatios();syncRatioInputs();renderPrices();renderWallet()});
+buildRatios();
 $("usefloor").addEventListener("click",()=>{if(GLHF)setG(+GLHF.floor.toFixed(6),false)});
 try{const ad=localStorage.getItem("addr");if(ad)$("addr").value=ad}catch(_){}
 renderPrices();
