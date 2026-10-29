@@ -54,12 +54,13 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
 <div class="wrap">
   <header>
     <h1>GLHFER ROM Value</h1>
-    <p class="sub">24 points = 1 GLHFER. Set its value, then check any wallet's Gigaverse ROMs.</p>
+    <p class="sub">24 points = 1 GLHFER. By default 1 GLHFER = the GLHF floor on Ethereum. Type your own value to override it.</p>
   </header>
 
   <div class="panel">
-    <label for="glhfer">Value of 1 GLHFER (= Void 128 MB, 24 pts)</label>
-    <div class="row"><span>GLHFER =</span><input id="glhfer" type="number" inputmode="decimal" step="any" value="100"></div>
+    <label for="glhfer">Value of 1 GLHFER in ETH (= Void 128 MB, 24 pts)</label>
+    <div class="row"><span>GLHFER =</span><input id="glhfer" type="number" inputmode="decimal" step="any" placeholder="Loading GLHF floor…"></div>
+    <div class="row" style="flex-wrap:wrap;justify-content:space-between"><span id="gsrc" class="note" style="font:inherit;font-size:.85rem;color:var(--muted)">Loading GLHF floor…</span><button id="usefloor" type="button" class="ghost" disabled>Reset to GLHF floor</button></div>
   </div>
 
   <section class="panel">
@@ -72,7 +73,7 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
     <div id="wresult" hidden>
       <div class="total"><span id="wcount"></span><b id="wtotal"></b></div>
       <div class="scroll"><table>
-        <thead><tr><th>ROM</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Value</th><th class="n">At floor</th></tr></thead>
+        <thead><tr><th>ROM</th><th class="n">Qty</th><th class="n">Each (ETH)</th><th class="n">Value (ETH)</th><th class="n">At floor</th></tr></thead>
         <tbody id="wrows"></tbody>
       </table></div>
       <p id="wfloor" class="note"></p>
@@ -88,10 +89,9 @@ tfoot td{font-weight:600;border-top:2px solid var(--fg)}
       </div>
     </div>
     <div class="scroll"><table>
-      <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value</th><th class="n">Floor</th></tr></thead>
+      <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value (ETH)</th><th class="n">Floor</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
-    <div class="row" style="flex-wrap:wrap"><button id="usefloor" type="button" class="ghost" disabled>Set 1 GLHFER = Void 128 MB floor</button></div>
     <p class="note">Floors are the cheapest OpenSea listing per Tier + Memory. They refresh every hour on their own; Update floors fetches them right now. Giga is a one-of-one with no point value, so it only shows a floor.</p>
   </section>
 </div>
@@ -101,10 +101,10 @@ const ROMS=[["Silver","8MB",3],["Silver","16MB",4],["Silver","32MB",5],["Gold","
 const FX={3:"1/8",4:"1/6",5:"5/24",6:"1/4",8:"1/3",12:"1/2",24:"1",30:"1.25",36:"1.5"};
 const PTS=Object.fromEntries(ROMS.map(([t,m,p])=>[t+"|"+m,p]));
 const $=id=>document.getElementById(id);
-const fmt=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:2}):"–";
+const fmt=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
 const nice=m=>m.replace(/(\d+)\s*MB/i,"$1 MB");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let lastRoms=null,FLOORS={},FCUR="ETH",FTIME=null;
+let lastRoms=null,FLOORS={},FCUR="ETH",FTIME=null,GLHF=null,custom=false;
 const CONTRACT="0x59eec556cef447e13edf4bfd3d4433d8dad8a7a5";
 const eth=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
 const fcell=k=>{const f=FLOORS[k];if(!f||f.floor==null)return "–";const v=`${eth(f.floor)} ${esc(f.currency||FCUR)}`;return f.tokenId?`<a href="https://opensea.io/item/abstract/${CONTRACT}/${esc(f.tokenId)}" target="_blank" rel="noopener">${v}</a>`:v};
@@ -136,7 +136,7 @@ function renderWallet(){
   });
   $("wrows").innerHTML=rows.join("")||`<tr><td colspan="5" class="note">No ROMs in this wallet.</td></tr>`;
   $("wcount").textContent=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"}`+(unpriced?` (${unpriced} not priced)`:"");
-  $("wtotal").textContent=fmt(total);
+  $("wtotal").textContent=fmt(total)+" ETH";
   $("wfloor").textContent=Object.keys(FLOORS).length&&lastRoms.length?`At floor: ${eth(ftotal)} ${FCUR}`+(fmissing?` (${fmissing} ROM${fmissing===1?"":"s"} with no listing)`:""):"";
   $("wresult").hidden=false;
 }
@@ -152,7 +152,10 @@ async function loadFloors(fresh){
     if(!r.ok)throw new Error(j.error||"Couldn't load floors.");
     FLOORS={};for(const f of j.floors){FLOORS[f.tier+"|"+(f.memory||"")]=f;if(f.currency)FCUR=f.currency}
     FTIME=new Date(j.updatedAt);showFtime();
-    $("usefloor").disabled=!(FLOORS["Void|128MB"]&&FLOORS["Void|128MB"].floor!=null);
+    GLHF=j.glhf&&j.glhf.floor!=null?j.glhf:null;
+    $("usefloor").disabled=!GLHF;
+    if(GLHF&&!custom)setG(+GLHF.floor.toFixed(6),false);
+    showGsrc();
     renderPrices();renderWallet();
   }catch(err){$("fstatus").textContent=err.message}
   finally{b.disabled=false}
@@ -174,11 +177,17 @@ $("wform").addEventListener("submit",async e=>{
   finally{$("go").disabled=false}
 });
 
-function setG(v){$("glhfer").value=v;renderPrices();renderWallet();try{localStorage.setItem("glhfer",v)}catch(_){}}
-$("glhfer").addEventListener("input",()=>setG($("glhfer").value));
+function showGsrc(){
+  const el=$("gsrc");
+  if(!GLHF){el.innerHTML="GLHF floor unavailable. Type a value.";return}
+  const link=GLHF.slug?`<a href="https://opensea.io/collection/${esc(GLHF.slug)}" target="_blank" rel="noopener" style="color:inherit">GLHF floor</a>`:"GLHF floor";
+  el.innerHTML=custom?`Custom value. ${link}: ${eth(GLHF.floor)} ${esc(GLHF.currency||"ETH")}`:`Using ${link}: ${eth(GLHF.floor)} ${esc(GLHF.currency||"ETH")}`;
+}
+function setG(v,isCustom){$("glhfer").value=v;custom=isCustom;renderPrices();renderWallet();if(GLHF)showGsrc()}
+$("glhfer").addEventListener("input",()=>setG($("glhfer").value,true));
 $("refresh").addEventListener("click",()=>loadFloors(true));
-$("usefloor").addEventListener("click",()=>{const f=FLOORS["Void|128MB"];if(f&&f.floor!=null)setG(+f.floor.toFixed(6))});
-try{const s=localStorage.getItem("glhfer");if(s)$("glhfer").value=s;const ad=localStorage.getItem("addr");if(ad)$("addr").value=ad}catch(_){}
+$("usefloor").addEventListener("click",()=>{if(GLHF)setG(+GLHF.floor.toFixed(6),false)});
+try{const ad=localStorage.getItem("addr");if(ad)$("addr").value=ad}catch(_){}
 renderPrices();
 loadFloors(false);
 setInterval(showFtime,60000);
