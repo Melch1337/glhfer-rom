@@ -48,12 +48,38 @@ async function floorFor(tier, memory) {
   };
 }
 
+// GLHF collection on Ethereum: its floor is the default value of 1 GLHFER
+const GLHF_CONTRACT = process.env.GLHF_CONTRACT || "0x7eeb9b28833934aa9f79da82d29aebfa29b779f3";
+let glhfSlug = process.env.GLHF_SLUG || null;
+
+async function os(path) {
+  const r = await fetch("https://api.opensea.io/api/v2" + path, { headers: { accept: "application/json", "x-api-key": KEY } });
+  if (!r.ok) throw new Error(`OpenSea returned HTTP ${r.status} for GLHF`);
+  return r.json();
+}
+
+async function glhfFloor() {
+  if (!glhfSlug) glhfSlug = (await os(`/chain/ethereum/contract/${GLHF_CONTRACT}`)).collection;
+  if (!glhfSlug) throw new Error("Couldn't find the GLHF collection on OpenSea");
+  // Cheapest live listing first; fall back to the collection stats floor
+  try {
+    const j = await os(`/listings/collection/${glhfSlug}/best?limit=1`);
+    const p = readPrice((j.listings || [])[0]);
+    if (p) return { slug: glhfSlug, floor: p.value, currency: p.currency };
+  } catch {}
+  const st = await os(`/collections/${glhfSlug}/stats`);
+  const f = st?.total?.floor_price;
+  return { slug: glhfSlug, floor: f ?? null, currency: st?.total?.floor_price_symbol || "ETH" };
+}
+
 export default async function handler(req, res) {
   if (!KEY) {
     return res.status(500).json({ error: "Floors need an OpenSea API key. Add OPENSEA_API_KEY in Vercel's environment variables and redeploy." });
   }
   const results = [];
   const errors = [];
+  let glhf = null;
+  try { glhf = await glhfFloor(); } catch (e) { errors.push(e.message); }
   // A few at a time, to stay under OpenSea's rate limit
   for (let i = 0; i < COMBOS.length; i += 3) {
     const batch = await Promise.allSettled(COMBOS.slice(i, i + 3).map(([t, m]) => floorFor(t, m)));
@@ -74,5 +100,5 @@ export default async function handler(req, res) {
     "Cache-Control",
     fresh ? "no-store" : "public, s-maxage=3600, stale-while-revalidate=600"
   );
-  return res.status(200).json({ slug: SLUG, updatedAt: new Date().toISOString(), floors: results, errors });
+  return res.status(200).json({ slug: SLUG, updatedAt: new Date().toISOString(), glhf, floors: results, errors });
 }
