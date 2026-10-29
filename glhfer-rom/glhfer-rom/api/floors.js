@@ -72,6 +72,23 @@ async function glhfFloor() {
   return { slug: glhfSlug, floor: f ?? null, currency: st?.total?.floor_price_symbol || "ETH" };
 }
 
+// GLHFStrategy (GLHFSTR) ERC-20 on Ethereum, priced via GeckoTerminal (free, no key)
+const STRATEGY = (process.env.GLHFSTR_CONTRACT || "0xae52e336f1cc779c2e647b82994e4d29ed4e0286").toLowerCase();
+const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+
+async function strategyPrice() {
+  const r = await fetch(
+    `https://api.geckoterminal.com/api/v2/simple/networks/eth/token_price/${STRATEGY},${WETH}`,
+    { headers: { accept: "application/json" } }
+  );
+  if (!r.ok) throw new Error(`GeckoTerminal returned HTTP ${r.status} for GLHFSTR`);
+  const prices = (await r.json())?.data?.attributes?.token_prices || {};
+  const usd = parseFloat(prices[STRATEGY]);
+  const ethUsd = parseFloat(prices[WETH]);
+  if (!(usd > 0) || !(ethUsd > 0)) throw new Error("No GLHFSTR price found on GeckoTerminal");
+  return { symbol: "GLHFSTR", contract: STRATEGY, usd, ethUsd, eth: usd / ethUsd };
+}
+
 export default async function handler(req, res) {
   if (!KEY) {
     return res.status(500).json({ error: "Floors need an OpenSea API key. Add OPENSEA_API_KEY in Vercel's environment variables and redeploy." });
@@ -79,7 +96,10 @@ export default async function handler(req, res) {
   const results = [];
   const errors = [];
   let glhf = null;
-  try { glhf = await glhfFloor(); } catch (e) { errors.push(e.message); }
+  let strategy = null;
+  const [g, st] = await Promise.allSettled([glhfFloor(), strategyPrice()]);
+  if (g.status === "fulfilled") glhf = g.value; else errors.push(g.reason.message);
+  if (st.status === "fulfilled") strategy = st.value; else errors.push(st.reason.message);
   // A few at a time, to stay under OpenSea's rate limit
   for (let i = 0; i < COMBOS.length; i += 3) {
     const batch = await Promise.allSettled(COMBOS.slice(i, i + 3).map(([t, m]) => floorFor(t, m)));
@@ -100,5 +120,5 @@ export default async function handler(req, res) {
     "Cache-Control",
     fresh ? "no-store" : "public, s-maxage=3600, stale-while-revalidate=600"
   );
-  return res.status(200).json({ slug: SLUG, updatedAt: new Date().toISOString(), glhf, floors: results, errors });
+  return res.status(200).json({ slug: SLUG, updatedAt: new Date().toISOString(), glhf, strategy, floors: results, errors });
 }
