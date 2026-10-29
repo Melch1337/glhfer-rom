@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GLHFER ROM Value</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#f3f4f7;--panel:#ffffff;--fg:#1a1d26;--muted:#646a7a;--line:#dfe2ea;--err:#c0392b;
+  --silver:#8a93a6;--gold:#b8860b;--void:#6b3fd4;--giga:#d0367a;--accent:#3a4ee0;--onaccent:#fff;
+  --display:"Chakra Petch",system-ui,sans-serif;--body:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1117;--panel:#171a23;--fg:#e8eaf2;--muted:#9aa0b2;--line:#2a2f3c;--err:#ff7b6b;
+  --silver:#b4bccc;--gold:#e0b341;--void:#a98bff;--giga:#ff6fa8;--accent:#7f8cff;--onaccent:#0f1117;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:600px;margin:0 auto;padding:32px 16px 48px;display:grid;gap:22px}
+h1{font-family:var(--display);font-weight:700;font-size:1.8rem;margin:0}
+h2{font-family:var(--display);font-weight:700;font-size:1.15rem;margin:0}
+.sub{color:var(--muted);margin:4px 0 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px}
+label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.row{display:flex;align-items:center;gap:10px}
+.row>span{font-family:var(--display);font-size:1.1rem;white-space:nowrap}
+input{font:500 1.05rem var(--mono);width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+#glhfer{font-size:1.35rem}
+input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:600 .95rem var(--body);padding:10px 16px;border:0;border-radius:8px;background:var(--accent);color:var(--onaccent);cursor:pointer;white-space:nowrap}
+button:disabled{opacity:.6;cursor:wait}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+button.ghost:disabled{cursor:not-allowed}
+td a{color:inherit}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:0 8px 8px}
+td{padding:10px 8px;border-top:1px solid var(--line)}
+.n{text-align:right}
+td.v{font:500 1rem var(--mono)}
+td.f{color:var(--muted);font-family:var(--mono);font-size:.9rem}
+tfoot td{font-weight:600;border-top:2px solid var(--fg)}
+.tier{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle;background:var(--muted)}
+.Silver{background:var(--silver)}.Gold{background:var(--gold)}.Void{background:var(--void)}.Giga{background:var(--giga)}
+.note{color:var(--muted);font-size:.85rem;margin:0}
+.err{color:var(--err);margin:0}
+.total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.total b{font:700 1.6rem var(--display)}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>GLHFER ROM Value</h1>
+    <p class="sub">24 points = 1 GLHFER. Set its value, then check any wallet's Gigaverse ROMs.</p>
+  </header>
+
+  <div class="panel">
+    <label for="glhfer">Value of 1 GLHFER (= Void 128 MB, 24 pts)</label>
+    <div class="row"><span>GLHFER =</span><input id="glhfer" type="number" inputmode="decimal" step="any" value="100"></div>
+  </div>
+
+  <section class="panel">
+    <h2>Wallet checker</h2>
+    <form id="wform" class="row">
+      <input id="addr" placeholder="0x… wallet address on Abstract" autocomplete="off" spellcheck="false">
+      <button id="go" type="submit">Check</button>
+    </form>
+    <p id="wstatus" class="note" hidden></p>
+    <div id="wresult" hidden>
+      <div class="total"><span id="wcount"></span><b id="wtotal"></b></div>
+      <div class="scroll"><table>
+        <thead><tr><th>ROM</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Value</th><th class="n">At floor</th></tr></thead>
+        <tbody id="wrows"></tbody>
+      </table></div>
+      <p id="wfloor" class="note"></p>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:10px">
+    <div class="total">
+      <h2>Price list</h2>
+      <div class="row" style="gap:8px">
+        <span id="fstatus" class="note" style="font:inherit;font-size:.85rem;color:var(--muted)">Loading floors…</span>
+        <button id="refresh" type="button">Update floors</button>
+      </div>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value</th><th class="n">Floor</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div class="row" style="flex-wrap:wrap"><button id="usefloor" type="button" class="ghost" disabled>Set 1 GLHFER = Void 128 MB floor</button></div>
+    <p class="note">Floors are the cheapest OpenSea listing per Tier + Memory. They refresh every hour on their own; Update floors fetches them right now. Giga is a one-of-one with no point value, so it only shows a floor.</p>
+  </section>
+</div>
+
+<script>
+const ROMS=[["Silver","8MB",3],["Silver","16MB",4],["Silver","32MB",5],["Gold","32MB",6],["Gold","64MB",8],["Gold","128MB",12],["Void","128MB",24],["Void","256MB",30],["Void","512MB",36]];
+const FX={3:"1/8",4:"1/6",5:"5/24",6:"1/4",8:"1/3",12:"1/2",24:"1",30:"1.25",36:"1.5"};
+const PTS=Object.fromEntries(ROMS.map(([t,m,p])=>[t+"|"+m,p]));
+const $=id=>document.getElementById(id);
+const fmt=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:2}):"–";
+const nice=m=>m.replace(/(\d+)\s*MB/i,"$1 MB");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let lastRoms=null,FLOORS={},FCUR="ETH",FTIME=null;
+const CONTRACT="0x59eec556cef447e13edf4bfd3d4433d8dad8a7a5";
+const eth=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
+const fcell=k=>{const f=FLOORS[k];if(!f||f.floor==null)return "–";const v=`${eth(f.floor)} ${esc(f.currency||FCUR)}`;return f.tokenId?`<a href="https://opensea.io/item/abstract/${CONTRACT}/${esc(f.tokenId)}" target="_blank" rel="noopener">${v}</a>`:v};
+
+function g(){return parseFloat($("glhfer").value)}
+
+function renderPrices(){
+  const x=g();
+  $("rows").innerHTML=ROMS.map(([t,m,p])=>`<tr><td><span class="tier ${t}"></span>${t} ${nice(m)}</td><td class="n">${p}</td><td class="n f">${FX[p]}</td><td class="n v">${fmt(p/24*x)}</td><td class="n v">${fcell(t+"|"+m)}</td></tr>`).join("")
+   +`<tr><td><span class="tier Giga"></span>Giga</td><td class="n">–</td><td class="n f">–</td><td class="n v">–</td><td class="n v">${fcell("Giga|")}</td></tr>`;
+}
+
+function renderWallet(){
+  if(!lastRoms)return;
+  const x=g(),groups={};
+  for(const r of lastRoms){
+    const tier=r.tier||"Unknown",mem=tier==="Giga"?"":(r.memory||"").replace(/\s+/g,"").toUpperCase();
+    const key=tier+"|"+mem;
+    (groups[key]||(groups[key]={tier,mem,qty:0})).qty++;
+  }
+  const order=k=>{const i=ROMS.findIndex(([t,m])=>t+"|"+m===k);return i<0?(k==="Giga|"?50:99):i};
+  let total=0,unpriced=0,ftotal=0,fmissing=0;
+  const rows=Object.entries(groups).sort((a,b)=>order(a[0])-order(b[0])).map(([k,gr])=>{
+    const p=PTS[k],each=p?p/24*x:NaN,val=p?each*gr.qty:NaN;
+    if(p)total+=val;else unpriced+=gr.qty;
+    const f=FLOORS[k],fv=f&&f.floor!=null?f.floor*gr.qty:NaN;
+    if(Number.isFinite(fv))ftotal+=fv;else fmissing+=gr.qty;
+    return `<tr><td><span class="tier ${esc(gr.tier)}"></span>${esc(gr.tier)} ${esc(nice(gr.mem))}</td><td class="n">${gr.qty}</td><td class="n v">${p?fmt(each):"–"}</td><td class="n v">${p?fmt(val):"–"}</td><td class="n v">${Number.isFinite(fv)?eth(fv):"–"}</td></tr>`;
+  });
+  $("wrows").innerHTML=rows.join("")||`<tr><td colspan="5" class="note">No ROMs in this wallet.</td></tr>`;
+  $("wcount").textContent=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"}`+(unpriced?` (${unpriced} not priced)`:"");
+  $("wtotal").textContent=fmt(total);
+  $("wfloor").textContent=Object.keys(FLOORS).length&&lastRoms.length?`At floor: ${eth(ftotal)} ${FCUR}`+(fmissing?` (${fmissing} ROM${fmissing===1?"":"s"} with no listing)`:""):"";
+  $("wresult").hidden=false;
+}
+
+function ago(d){const m=Math.round((Date.now()-d)/60000);return m<1?"just now":m<60?`${m} min ago`:`${Math.round(m/60)} h ago`}
+function showFtime(){if(FTIME)$("fstatus").textContent="Updated "+ago(FTIME)}
+
+async function loadFloors(fresh){
+  const b=$("refresh");b.disabled=true;$("fstatus").textContent="Updating…";
+  try{
+    const r=await fetch("/api/floors"+(fresh?"?fresh="+Date.now():""));
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.error||"Couldn't load floors.");
+    FLOORS={};for(const f of j.floors){FLOORS[f.tier+"|"+(f.memory||"")]=f;if(f.currency)FCUR=f.currency}
+    FTIME=new Date(j.updatedAt);showFtime();
+    $("usefloor").disabled=!(FLOORS["Void|128MB"]&&FLOORS["Void|128MB"].floor!=null);
+    renderPrices();renderWallet();
+  }catch(err){$("fstatus").textContent=err.message}
+  finally{b.disabled=false}
+}
+
+$("wform").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const a=$("addr").value.trim();
+  const st=$("wstatus");
+  if(!/^0x[0-9a-fA-F]{40}$/.test(a)){st.hidden=false;st.className="err";st.textContent="Enter a wallet address that starts with 0x and is 42 characters long.";return}
+  $("go").disabled=true;st.hidden=false;st.className="note";st.textContent="Looking up ROMs…";$("wresult").hidden=true;
+  try{
+    const r=await fetch("/api/wallet?address="+encodeURIComponent(a));
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.error||"Lookup failed.");
+    lastRoms=j.roms;st.hidden=true;renderWallet();
+    try{localStorage.setItem("addr",a)}catch(_){}
+  }catch(err){st.className="err";st.textContent=err.message}
+  finally{$("go").disabled=false}
+});
+
+function setG(v){$("glhfer").value=v;renderPrices();renderWallet();try{localStorage.setItem("glhfer",v)}catch(_){}}
+$("glhfer").addEventListener("input",()=>setG($("glhfer").value));
+$("refresh").addEventListener("click",()=>loadFloors(true));
+$("usefloor").addEventListener("click",()=>{const f=FLOORS["Void|128MB"];if(f&&f.floor!=null)setG(+f.floor.toFixed(6))});
+try{const s=localStorage.getItem("glhfer");if(s)$("glhfer").value=s;const ad=localStorage.getItem("addr");if(ad)$("addr").value=ad}catch(_){}
+renderPrices();
+loadFloors(false);
+setInterval(showFtime,60000);
+</script>
+</body>
+</html>
