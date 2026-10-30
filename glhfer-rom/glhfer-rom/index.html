@@ -143,11 +143,11 @@ tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--line)}
       <div class="scroll">
         <table>
           <thead>
-            <tr class="grp"><th colspan="7">MARKET</th><th class="sep"></th><th colspan="3">YOUR ROMS</th></tr>
-            <tr class="cols"><th>ROM variant</th><th>Pts</th><th>Floor</th><th id="hPer">Pts / ETH</th><th>Rank</th><th>vs GLHFER</th><th>GLHFER value</th><th class="sep"></th><th>Qty</th><th>Pts</th><th>Value</th></tr>
+            <tr class="grp"><th colspan="6">MARKET</th><th class="sep"></th><th colspan="3">YOUR ROMS</th></tr>
+            <tr class="cols"><th>ROM variant</th><th>Pts</th><th>Floor</th><th id="hPer">Pts / ETH</th><th>Rank</th><th>vs GLHFER</th><th class="sep"></th><th>Qty</th><th>Pts</th><th>Value</th></tr>
           </thead>
           <tbody id="rows"></tbody>
-          <tfoot><tr><td>Total</td><td colspan="6"></td><td class="sep"></td><td id="tQty">–</td><td id="tPts">–</td><td id="tVal">–</td></tr></tfoot>
+          <tfoot><tr><td>Total</td><td colspan="5"></td><td class="sep"></td><td id="tQty">–</td><td id="tPts">–</td><td id="tVal">–</td></tr></tfoot>
         </table>
       </div>
       <p class="foot"><strong>Pts / ETH</strong> (or per $1K): how many points the floor price buys, higher is better; rank 1 is the best value. <strong>vs GLHFER</strong>: the floor compared to the ROM's GLHFER value (green = cheaper). <strong>Value</strong> under Your ROMs is quantity × floor. Giga is a one-of-one and has no points.</p>
@@ -216,7 +216,7 @@ function render(){
   const ranked=Object.keys(per).sort((a,b)=>per[b]-per[a]);
   const rank=Object.fromEntries(ranked.map((k,i)=>[k,i+1])),best=ranked[0];
   const vs=k=>{const f=FLOORS[k];if(!f||f.floor==null||!PTS[k]||!(x>0))return "–";const d=(f.floor/(PTS[k]/BASE*x)-1)*100;return `<span class="${d<=0?"pos":"neg"}">${d>0?"+":""}${d.toFixed(0)}%</span>`};
-  const perTxt=k=>k in per?num(per[k],1):"–";
+  const perTxt=k=>k in per?num(per[k],0):"–";
 
   let tQty=0,tPts=0,tVal=0,valMissing=0,unknown=0;
   const yourCells=k=>{
@@ -228,8 +228,8 @@ function render(){
   };
 
   let html=ROMS.map(([t,m])=>{const k=t+"|"+m,isBest=k===best,top=rank[k]===1?' class="top1"':'';
-    return `<tr${isBest?' class="best"':''}><td><span class="ic ${t}"></span>${t} ${m}${isBest?'<span class="badge">BEST</span>':''}</td><td>${PTS[k]}</td><td>${floorLink(k)}</td><td${top}>${perTxt(k)}</td><td${top}>${rank[k]||"–"}</td><td>${vs(k)}</td><td>${money(PTS[k]/BASE*x)}</td><td class="sep"></td>${yourCells(k)}</tr>`}).join("");
-  html+=`<tr><td><span class="ic Giga"></span>Giga</td><td class="dim">1/1</td><td>${floorLink("Giga|")}</td><td class="dim">–</td><td class="dim">–</td><td class="dim">–</td><td class="dim">–</td><td class="sep"></td>${yourCells("Giga|")}</tr>`;
+    return `<tr${isBest?' class="best"':''}><td><span class="ic ${t}"></span>${t} ${m}${isBest?'<span class="badge">BEST</span>':''}</td><td>${PTS[k]}</td><td>${floorLink(k)}</td><td${top}>${perTxt(k)}</td><td${top}>${rank[k]||"–"}</td><td>${vs(k)}</td><td class="sep"></td>${yourCells(k)}</tr>`}).join("");
+  html+=`<tr><td><span class="ic Giga"></span>Giga</td><td class="dim">1/1</td><td>${floorLink("Giga|")}</td><td class="dim">–</td><td class="dim">–</td><td class="dim">–</td><td class="sep"></td>${yourCells("Giga|")}</tr>`;
   $("rows").innerHTML=html;
   if(W)for(const k in W)if(!(k in PTS)&&k!=="Giga|")unknown+=W[k];
 
