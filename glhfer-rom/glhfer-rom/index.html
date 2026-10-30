@@ -3,184 +3,269 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GLHFER ROM Value</title>
+<title>GLHFER ROMs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Figtree:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
+/* Layout: wide dashboard. Header bar → notice → 4 summary cards → [combined table | your ROMs side panel] */
 :root{
-  --bg:#f3f4f7;--panel:#ffffff;--fg:#1a1d26;--muted:#646a7a;--line:#dfe2ea;--err:#c0392b;
-  --silver:#8a93a6;--gold:#b8860b;--void:#6b3fd4;--giga:#d0367a;--accent:#3a4ee0;--onaccent:#fff;--warn:#b45309;--warnbg:#fff7e6;--good:#15803d;--goodbg:#ecfdf3;--ongood:#fff;
-  --display:"Chakra Petch",system-ui,sans-serif;--body:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
-  color-scheme:light;
+  --bg:#0c0e11;--panel:#14171c;--panel2:#1a1e25;--line:#262b34;--fg:#ebe7df;--muted:#8a909b;
+  --accent:#f2a72a;--accentbg:#2a1f0c;--good:#4ade80;--bad:#f87171;--warnbg:#2a1d08;--bestbg:#13261b;
+  --silver:#a7adb8;--gold:#f2b134;--void:#a77bff;--giga:#ff5fa8;
+  --pixel:"Silkscreen",ui-monospace,monospace;--body:"Figtree",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme:dark){:root{
-  --bg:#0f1117;--panel:#171a23;--fg:#e8eaf2;--muted:#9aa0b2;--line:#2a2f3c;--err:#ff7b6b;
-  --silver:#b4bccc;--gold:#e0b341;--void:#a98bff;--giga:#ff6fa8;--accent:#7f8cff;--onaccent:#0f1117;--warn:#f5a524;--warnbg:#2a1f0a;--good:#4ade80;--goodbg:#0f2a1a;--ongood:#0f1117;color-scheme:dark}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
-.wrap{max-width:600px;margin:0 auto;padding:32px 16px 48px;display:grid;gap:22px}
-h1{font-family:var(--display);font-weight:700;font-size:1.8rem;margin:0}
-h2{font-family:var(--display);font-weight:700;font-size:1.15rem;margin:0}
-.sub{color:var(--muted);margin:4px 0 0}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px}
-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
-.row{display:flex;align-items:center;gap:10px}
-.row>span{font-family:var(--display);font-size:1.1rem;white-space:nowrap}
-input{font:500 1.05rem var(--mono);width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
-#glhfer{font-size:1.35rem}
-input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-button{font:600 .95rem var(--body);padding:10px 16px;border:0;border-radius:8px;background:var(--accent);color:var(--onaccent);cursor:pointer;white-space:nowrap}
-button:disabled{opacity:.6;cursor:wait}
-button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
-button.ghost:disabled{cursor:not-allowed}
-td a{color:inherit}
-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:0 8px 8px}
-td{padding:10px 8px;border-top:1px solid var(--line)}
-.n{text-align:right}
-td.v{font:500 1rem var(--mono)}
-td.f{color:var(--muted);font-family:var(--mono);font-size:.9rem}
-tfoot td{font-weight:600;border-top:2px solid var(--fg)}
-.tier{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle;background:var(--muted)}
-.Silver{background:var(--silver)}.Gold{background:var(--gold)}.Void{background:var(--void)}.Giga{background:var(--giga)}
-.note{color:var(--muted);font-size:.85rem;margin:0}
-.err{color:var(--err);margin:0}
-.total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-.total b{font:700 1.6rem var(--display)}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 var(--body)}
+.wrap{max-width:1440px;margin:0 auto;padding:0 20px 40px;display:grid;gap:16px}
+a{color:inherit}
+button{font:700 .8rem var(--body);cursor:pointer;border-radius:8px}
+button:focus-visible,input:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin:0 -20px;padding:12px 20px;display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
+.brand{font:700 1.25rem var(--pixel);color:var(--accent);letter-spacing:.04em;margin:0 auto 0 0}
+.brand small{display:block;font:400 .72rem var(--body);color:var(--muted);letter-spacing:0}
+.upd{color:var(--muted);font-size:.85rem}
+.btn{background:var(--panel2);color:var(--fg);border:1px solid var(--line);padding:8px 14px}
+.btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.55;cursor:wait}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--panel)}
+.seg button{border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:999px}
+.seg button[aria-pressed="true"]{background:var(--accentbg);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+
+.notice{border:1px solid var(--accent);background:var(--warnbg);border-radius:10px;padding:10px 14px;display:flex;gap:6px 18px;flex-wrap:wrap;align-items:baseline}
+.notice b{font:700 .8rem var(--pixel);color:var(--accent);letter-spacing:.04em}
+.notice .m{color:var(--muted)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:8px;align-content:start;min-width:0}
+.lbl{font:400 .68rem var(--pixel);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.big{font:700 1.5rem var(--mono);line-height:1.15}
+.big.acc{color:var(--accent)}
+.sub{color:var(--muted);font-size:.82rem;margin:0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.88rem;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;text-align:right;font:500 .88rem var(--mono)}
+.inrow{display:flex;gap:8px;align-items:center}
+input{font:500 1rem var(--mono);width:100%;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent);padding:7px 12px;white-space:nowrap}
+.ghost:disabled{opacity:.4;cursor:not-allowed}
+.go{background:var(--accent);color:#1a1205;border:0;padding:9px 16px}
+.go:disabled{opacity:.6;cursor:wait}
+.err{color:var(--bad);font-size:.85rem;margin:0}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:1000px){.main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0}
 .scroll{overflow-x:auto}
-.badge{display:inline-block;font:700 .68rem var(--body);text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:999px;background:var(--good);color:var(--ongood);vertical-align:middle;white-space:nowrap}
-.bestrow td{background:var(--goodbg)}
-.under{color:var(--good);font-weight:600}
-.over{color:var(--err)}
-.bestbox{border:2px solid var(--good);background:var(--goodbg);border-radius:10px;padding:12px 14px;margin:0}
-.warn{border:2px solid var(--warn);background:var(--warnbg);border-radius:10px;padding:16px;display:grid;gap:6px}
-.warn h2{color:var(--warn);font-size:1.25rem}
-.warn p{margin:0}
-.warn ul{margin:0;padding-left:20px;display:grid;gap:4px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:920px}
+th,td{padding:9px 12px;white-space:nowrap}
+thead tr.grp th{font:700 .7rem var(--pixel);letter-spacing:.06em;text-align:left;padding-top:12px;padding-bottom:4px;color:var(--accent);border-bottom:2px solid var(--accent)}
+thead tr.cols th{font:400 .66rem var(--pixel);letter-spacing:.05em;color:var(--muted);text-align:right;border-bottom:1px solid var(--line)}
+thead tr.cols th:first-child{text-align:left}
+td{border-bottom:1px solid var(--line);text-align:right;font:500 .9rem var(--mono)}
+td:first-child{text-align:left;font:600 .92rem var(--body)}
+tbody tr:nth-child(even) td{background:var(--panel2)}
+.sep{width:14px;padding:0!important;background:var(--bg)!important;border-color:var(--bg)!important}
+tbody tr.best td{background:var(--bestbg)}
+tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--line)}
+.ic{display:inline-block;width:14px;height:14px;border-radius:3px;border:2px solid currentColor;margin-right:10px;vertical-align:-2px;position:relative}
+.ic::after{content:"";position:absolute;inset:2px;background:currentColor;opacity:.55;border-radius:1px}
+.Silver{color:var(--silver)}.Gold{color:var(--gold)}.Void{color:var(--void)}.Giga{color:var(--giga)}
+.badge{display:inline-block;font:700 .62rem var(--pixel);letter-spacing:.04em;padding:2px 6px;border-radius:4px;background:var(--good);color:#06240f;margin-left:8px;vertical-align:1px}
+.pos{color:var(--good)}.neg{color:var(--bad)}.top1{color:var(--accent)}
+.dim{color:var(--muted)}
+.foot{color:var(--muted);font-size:.8rem;padding:10px 14px;margin:0;border-top:1px solid var(--line)}
+
+.side{display:grid;gap:12px;padding:14px}
+.side h2{font:700 .85rem var(--pixel);letter-spacing:.05em;margin:0}
+.yc{border:1px solid #4a3a1c;border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.split>div+div{border-left:1px solid var(--line);padding-left:10px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>GLHFER ROM Value</h1>
-    <p class="sub">By default 1 GLHFER = the GLHF floor on Ethereum. You can type your own value to override it.</p>
+  <header class="top">
+    <h1 class="brand">GLHFER ROMS<small>Gigaverse ROM values, floors and wallet checker</small></h1>
+    <span id="fstatus" class="upd">Loading floors…</span>
+    <button id="refresh" class="btn" type="button">Update floors</button>
+    <div class="seg" role="group" aria-label="Currency">
+      <button id="curEth" type="button" aria-pressed="true">ETH</button>
+      <button id="curUsd" type="button" aria-pressed="false">USD</button>
+    </div>
   </header>
 
-  <section class="warn" role="alert">
-    <h2>⚠ Please read</h2>
-    <p><strong>The ROM ratios are confirmed.</strong> The points per ROM on this page are the official values.</p>
-    <ul>
-      <li><strong>The GLHFSTR ratio has not been released yet.</strong> It will be added to this page once it is confirmed.</li>
-      <li>Floors come from OpenSea and can be outdated or incorrect.</li>
-      <li>This is not financial advice. Do your own research before buying, selling or trading anything.</li>
-    </ul>
+  <section class="notice" role="note">
+    <b>⚠ PLEASE READ</b>
+    <span><strong>The GLHFSTR ratio has not been released yet.</strong> It will be added to this page once it is confirmed.</span>
+    <span>Floors come from OpenSea and can be outdated. Use the Update floors button if needed.</span>
+    <span>The wallet checker never connects to your wallet. You just type or paste an address.</span>
   </section>
 
-  <div class="panel">
-    <label for="glhfer">Value of 1 GLHFER in ETH</label>
-    <div class="row"><span>GLHFER =</span><input id="glhfer" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Loading GLHF floor…"><span>ETH</span></div>
-    <div class="row" style="flex-wrap:wrap;justify-content:space-between"><span id="gsrc" class="note" style="font:inherit;font-size:.85rem;color:var(--muted)">Loading GLHF floor…</span><button id="usefloor" type="button" class="ghost" disabled>Reset to GLHF floor</button></div>
-  </div>
+  <section class="cards">
+    <div class="card">
+      <span class="lbl">Conversion</span>
+      <dl class="kv"><dt>24 ROM pts</dt><dd>= 1 GLHFER</dd></dl>
+      <label class="lbl" for="glhfer">1 GLHFER =</label>
+      <div class="inrow"><input id="glhfer" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Loading…"><span class="dim">ETH</span></div>
+      <div class="inrow" style="justify-content:space-between;flex-wrap:wrap"><span id="gsrc" class="sub">Loading GLHF floor…</span><button id="usefloor" type="button" class="ghost" disabled>Reset to floor</button></div>
+    </div>
 
+    <div class="card">
+      <span class="lbl">Best value now</span>
+      <div id="bestName" class="big acc">–</div>
+      <p id="bestSub" class="sub">Waiting for floors…</p>
+    </div>
 
-  <section class="panel">
-    <h2>Wallet checker</h2>
-    <form id="wform" class="row">
-      <input id="addr" placeholder="0x… wallet address on Abstract" autocomplete="off" spellcheck="false">
-      <button id="go" type="submit">Check</button>
-    </form>
-    <p id="wstatus" class="note" hidden></p>
-    <div id="wresult" hidden>
-      <div class="total"><span id="wcount"></span><b id="wtotal"></b></div>
-      <div class="scroll"><table>
-        <thead><tr><th>ROM</th><th class="n">Qty</th><th class="n">Points</th><th class="n">Each (ETH)</th><th class="n">Value (ETH)</th><th class="n">At floor</th></tr></thead>
-        <tbody id="wrows"></tbody>
-      </table></div>
-      <p id="wfloor" class="note"></p>
+    <div class="card">
+      <span class="lbl">Market</span>
+      <dl class="kv">
+        <dt>GLHF floor</dt><dd id="mGlhf">–</dd>
+        <dt>Cheapest ROM</dt><dd id="mCheap">–</dd>
+        <dt>Giga floor</dt><dd id="mGiga">–</dd>
+        <dt>ETH price</dt><dd id="mEth">–</dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <span class="lbl">Check a wallet</span>
+      <form id="wform" class="inrow">
+        <input id="addr" placeholder="0x… on Abstract" autocomplete="off" spellcheck="false" style="font-size:.85rem">
+        <button id="go" class="go" type="submit">Check</button>
+      </form>
+      <p id="wstatus" class="sub">Paste a wallet address to fill in Your ROMs.</p>
     </div>
   </section>
 
-  <section style="display:grid;gap:10px">
-    <div class="total">
-      <h2>Price list</h2>
-      <div class="row" style="gap:8px">
-        <span id="fstatus" class="note" style="font:inherit;font-size:.85rem;color:var(--muted)">Loading floors…</span>
-        <button id="refresh" type="button">Update floors</button>
+  <section class="main">
+    <div class="panel">
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr class="grp"><th colspan="7">MARKET</th><th class="sep"></th><th colspan="3">YOUR ROMS</th></tr>
+            <tr class="cols"><th>ROM variant</th><th>Pts</th><th>Floor</th><th id="hPer">Pts / ETH</th><th>Rank</th><th>vs GLHFER</th><th>GLHFER value</th><th class="sep"></th><th>Qty</th><th>Pts</th><th>Value</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+          <tfoot><tr><td>Total</td><td colspan="6"></td><td class="sep"></td><td id="tQty">–</td><td id="tPts">–</td><td id="tVal">–</td></tr></tfoot>
+        </table>
       </div>
+      <p class="foot"><strong>Pts / ETH</strong> (or per $1K): how many points the floor price buys, higher is better; rank 1 is the best value. <strong>vs GLHFER</strong>: the floor compared to the ROM's GLHFER value (green = cheaper). <strong>Value</strong> under Your ROMs is quantity × floor. Giga is a one-of-one and has no points.</p>
     </div>
-    <p id="bestval" class="bestbox" hidden></p>
-    <div class="scroll"><table>
-      <thead><tr><th>ROM</th><th class="n">Pts</th><th class="n">In GLHFER</th><th class="n">Value (ETH)</th><th class="n">Floor</th><th class="n">ETH / point</th><th class="n">Floor vs value</th><th class="n">Rank</th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table></div>
-    <p class="note">Values use the confirmed ROM ratios. Floors are the cheapest OpenSea listing per Tier + Memory. They refresh every hour on their own; Update floors fetches them right now. Giga is a one-of-one with no point value, so it only shows a floor.</p>
-    <p class="note"><strong>Best value</strong> = the lowest floor price per point. <strong>Floor vs value</strong> compares the floor to the ROM's value in GLHFER: green (below 0%) means the floor is cheaper than its GLHFER value.</p>
+
+    <aside class="panel side">
+      <h2>YOUR ROMS</h2>
+      <div class="yc"><span class="lbl">Your ROM pts</span><div id="yPts" class="big">–</div><p id="yCount" class="sub">Check a wallet to see your ROMs.</p></div>
+      <div class="yc">
+        <span class="lbl">Your GLHFER</span>
+        <div class="split">
+          <div><div id="yG" class="big">–</div><p class="sub">full GLHFER</p></div>
+          <div><div id="yLeft" class="big">–</div><p id="yLeftSub" class="sub">leftover pts</p></div>
+        </div>
+      </div>
+      <div class="yc"><span class="lbl">Value at floor</span><div id="yFloor" class="big acc">–</div><p id="yFloorSub" class="sub">sum of each ROM's floor</p></div>
+      <div class="yc"><span class="lbl">Value at GLHFER rate</span><div id="yRate" class="big">–</div><p class="sub">pts ÷ 24 × GLHFER value</p></div>
+    </aside>
   </section>
 </div>
 
 <script>
 const ROMS=[["Silver","8MB",3],["Silver","16MB",4],["Silver","32MB",5],["Gold","32MB",6],["Gold","64MB",8],["Gold","128MB",12],["Void","128MB",24],["Void","256MB",30],["Void","512MB",36]];
-const DEF_PTS=Object.fromEntries(ROMS.map(([t,m,p])=>[t+"|"+m,p]));
-const DEF_BASE=24;
-const PTS={...DEF_PTS},BASE=DEF_BASE;
-const $=id=>document.getElementById(id);
-const fmt=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
-const nice=m=>m.replace(/(\d+)\s*MB/i,"$1 MB");
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let lastRoms=null,FLOORS={},FCUR="ETH",FTIME=null,GLHF=null,custom=false;
+const PTS=Object.fromEntries(ROMS.map(([t,m,p])=>[t+"|"+m,p]));
+const BASE=24;
 const CONTRACT="0x59eec556cef447e13edf4bfd3d4433d8dad8a7a5";
-const eth=n=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:4}):"–";
-const fcell=k=>{const f=FLOORS[k];if(!f||f.floor==null)return "–";const v=`${eth(f.floor)} ${esc(f.currency||FCUR)}`;return f.tokenId?`<a href="https://opensea.io/item/abstract/${CONTRACT}/${esc(f.tokenId)}" target="_blank" rel="noopener">${v}</a>`:v};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=(n,d=2)=>Number.isFinite(n)?n.toLocaleString("en-US",{maximumFractionDigits:d}):"–";
+const label=k=>k==="Giga|"?"Giga":k.replace("|"," ");
+
+let FLOORS={},GLHF=null,ETHUSD=null,FTIME=null,lastRoms=null,CUR="ETH",custom=false;
+try{if(localStorage.getItem("cur")==="USD")CUR="USD"}catch(_){}
 
 function g(){return parseFloat($("glhfer").value)}
-
-
-function renderPrices(){
-  const x=g();
-  // Value for money: floor price per point (lower = better)
-  const per={};
-  for(const [t,m] of ROMS){const k=t+"|"+m,f=FLOORS[k];if(f&&f.floor!=null&&PTS[k]>0)per[k]=f.floor/PTS[k]}
-  const ranked=Object.keys(per).sort((a,b)=>per[a]-per[b]);
-  const best=ranked[0],rank=Object.fromEntries(ranked.map((k,i)=>[k,i+1]));
-  const vsCell=k=>{
-    if(!(k in per)||!(x>0))return "–";
-    const d=(per[k]*BASE/x-1)*100; // floor vs GLHFER value
-    const cls=d<=0?"under":"over";
-    return `<span class="${cls}">${d>0?"+":""}${d.toFixed(0)}%</span>`;
-  };
-  $("rows").innerHTML=ROMS.map(([t,m])=>{const k=t+"|"+m,isBest=k===best;
-    return `<tr${isBest?' class="bestrow"':''}><td><span class="tier ${t}"></span>${t} ${nice(m)}${isBest?' <span class="badge">Best value</span>':''}</td><td class="n">${fmt(PTS[k])}</td><td class="n f">${fmt(PTS[k]/BASE)}</td><td class="n v">${fmt(PTS[k]/BASE*x)}</td><td class="n v">${fcell(k)}</td><td class="n v">${k in per?per[k].toFixed(5):"–"}</td><td class="n v">${vsCell(k)}</td><td class="n">${rank[k]||"–"}</td></tr>`}).join("")
-   +`<tr><td><span class="tier Giga"></span>Giga</td><td class="n">–</td><td class="n f">–</td><td class="n v">–</td><td class="n v">${fcell("Giga|")}</td><td class="n v">–</td><td class="n v">–</td><td class="n">–</td></tr>`;
-  const bv=$("bestval");
-  if(best){const [t,m]=best.split("|"),f=FLOORS[best];
-    bv.hidden=false;
-    bv.innerHTML=`<span class="badge">Best value now</span> <strong>${t} ${nice(m)}</strong> at ${eth(f.floor)} ETH: <strong>${per[best].toFixed(5)} ETH per point</strong>${x>0?`, ${vsCell(best)} vs its GLHFER value`:""}.${ranked[1]?` Runner-up: ${ranked[1].split("|").join(" ").replace(/(\d+)MB/,"$1 MB")} (${per[ranked[1]].toFixed(5)} ETH/pt).`:""}`;
-  }else bv.hidden=true;
+function money(eth){
+  if(!Number.isFinite(eth))return "–";
+  if(CUR==="USD"){if(!ETHUSD)return "–";const u=eth*ETHUSD;return "$"+u.toLocaleString("en-US",{maximumFractionDigits:u>=100?0:2})}
+  return eth.toLocaleString("en-US",{maximumFractionDigits:4})+" ETH";
 }
-
-function renderWallet(){
-  if(!lastRoms)return;
-  const x=g(),groups={};
+function perUnit(k){ // points per ETH, or per $1,000
+  const f=FLOORS[k];if(!f||f.floor==null||!PTS[k])return NaN;
+  return CUR==="USD"?(ETHUSD?PTS[k]/(f.floor*ETHUSD)*1000:NaN):PTS[k]/f.floor;
+}
+function floorLink(k){
+  const f=FLOORS[k];if(!f||f.floor==null)return "–";
+  const v=money(f.floor);
+  return f.tokenId?`<a href="https://opensea.io/item/abstract/${CONTRACT}/${esc(f.tokenId)}" target="_blank" rel="noopener">${v}</a>`:v;
+}
+function walletGroups(){
+  if(!lastRoms)return null;const gr={};
   for(const r of lastRoms){
     const tier=r.tier||"Unknown",mem=tier==="Giga"?"":(r.memory||"").replace(/\s+/g,"").toUpperCase();
-    const key=tier+"|"+mem;
-    (groups[key]||(groups[key]={tier,mem,qty:0})).qty++;
+    const k=tier+"|"+mem;gr[k]=(gr[k]||0)+1;
   }
-  const order=k=>{const i=ROMS.findIndex(([t,m])=>t+"|"+m===k);return i<0?(k==="Giga|"?50:99):i};
-  let total=0,unpriced=0,ftotal=0,fmissing=0,points=0;
-  const rows=Object.entries(groups).sort((a,b)=>order(a[0])-order(b[0])).map(([k,gr])=>{
-    const p=PTS[k],each=p?p/BASE*x:NaN,val=p?each*gr.qty:NaN;
-    if(p)points+=p*gr.qty;
-    if(p)total+=val;else unpriced+=gr.qty;
-    const f=FLOORS[k],fv=f&&f.floor!=null?f.floor*gr.qty:NaN;
-    if(Number.isFinite(fv))ftotal+=fv;else fmissing+=gr.qty;
-    return `<tr><td><span class="tier ${esc(gr.tier)}"></span>${esc(gr.tier)} ${esc(nice(gr.mem))}</td><td class="n">${gr.qty}</td><td class="n v">${p?fmt(p*gr.qty):"–"}</td><td class="n v">${p?fmt(each):"–"}</td><td class="n v">${p?fmt(val):"–"}</td><td class="n v">${Number.isFinite(fv)?eth(fv):"–"}</td></tr>`;
-  });
-  $("wrows").innerHTML=rows.join("")||`<tr><td colspan="6" class="note">No ROMs in this wallet.</td></tr>`;
-  $("wcount").innerHTML=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"} · <strong>${fmt(points)} points</strong> = ${fmt(points/BASE)} GLHFER`+(unpriced?` (${unpriced} not priced)`:"");
-  $("wtotal").textContent=fmt(total)+" ETH";
-  $("wfloor").textContent=Object.keys(FLOORS).length&&lastRoms.length?`At floor: ${eth(ftotal)} ${FCUR}`+(fmissing?` (${fmissing} ROM${fmissing===1?"":"s"} with no listing)`:""):"";
-  $("wresult").hidden=false;
+  return gr;
+}
+
+function render(){
+  const x=g(),W=walletGroups();
+  $("hPer").textContent=CUR==="USD"?"Pts / $1K":"Pts / ETH";
+  $("curEth").setAttribute("aria-pressed",CUR==="ETH");$("curUsd").setAttribute("aria-pressed",CUR==="USD");
+  $("curUsd").disabled=!ETHUSD;
+
+  const per={};for(const [t,m] of ROMS){const k=t+"|"+m,v=perUnit(k);if(Number.isFinite(v))per[k]=v}
+  const ranked=Object.keys(per).sort((a,b)=>per[b]-per[a]);
+  const rank=Object.fromEntries(ranked.map((k,i)=>[k,i+1])),best=ranked[0];
+  const vs=k=>{const f=FLOORS[k];if(!f||f.floor==null||!PTS[k]||!(x>0))return "–";const d=(f.floor/(PTS[k]/BASE*x)-1)*100;return `<span class="${d<=0?"pos":"neg"}">${d>0?"+":""}${d.toFixed(0)}%</span>`};
+  const perTxt=k=>k in per?num(per[k],1):"–";
+
+  let tQty=0,tPts=0,tVal=0,valMissing=0,unknown=0;
+  const yourCells=k=>{
+    if(!W)return `<td class="dim">–</td><td class="dim">–</td><td class="dim">–</td>`;
+    const q=W[k]||0,p=(PTS[k]||0)*q,f=FLOORS[k],v=f&&f.floor!=null?f.floor*q:NaN;
+    tQty+=q;tPts+=p;if(q){if(Number.isFinite(v))tVal+=v;else valMissing+=q}
+    const d=q?"":' class="dim"';
+    return `<td${d}>${q}</td><td${d}>${k==="Giga|"?(q?q+" × 1/1":"0"):p}</td><td${d}>${q?money(v):"–"}</td>`;
+  };
+
+  let html=ROMS.map(([t,m])=>{const k=t+"|"+m,isBest=k===best,top=rank[k]===1?' class="top1"':'';
+    return `<tr${isBest?' class="best"':''}><td><span class="ic ${t}"></span>${t} ${m}${isBest?'<span class="badge">BEST</span>':''}</td><td>${PTS[k]}</td><td>${floorLink(k)}</td><td${top}>${perTxt(k)}</td><td${top}>${rank[k]||"–"}</td><td>${vs(k)}</td><td>${money(PTS[k]/BASE*x)}</td><td class="sep"></td>${yourCells(k)}</tr>`}).join("");
+  html+=`<tr><td><span class="ic Giga"></span>Giga</td><td class="dim">1/1</td><td>${floorLink("Giga|")}</td><td class="dim">–</td><td class="dim">–</td><td class="dim">–</td><td class="dim">–</td><td class="sep"></td>${yourCells("Giga|")}</tr>`;
+  $("rows").innerHTML=html;
+  if(W)for(const k in W)if(!(k in PTS)&&k!=="Giga|")unknown+=W[k];
+
+  if(W){
+    $("tQty").textContent=tQty+(unknown?` (+${unknown})`:"");$("tPts").textContent=num(tPts,0);$("tVal").textContent=money(tVal);
+    $("yPts").textContent=num(tPts,0);
+    $("yCount").textContent=`${lastRoms.length} ROM${lastRoms.length===1?"":"s"}`+(unknown?`, ${unknown} unrecognised`:"");
+    $("yG").textContent=Math.floor(tPts/BASE);
+    const left=tPts%BASE;$("yLeft").textContent=num(left,0);
+    $("yLeftSub").textContent=left?`${num(BASE-left,0)} pts to next GLHFER`:"leftover pts";
+    $("yFloor").textContent=money(tVal);
+    $("yFloorSub").textContent=valMissing?`${valMissing} ROM${valMissing===1?"":"s"} without a listing not counted`:"sum of each ROM's floor";
+    $("yRate").textContent=money(tPts/BASE*x);
+  }else{
+    for(const id of ["tQty","tPts","tVal","yPts","yG","yLeft","yFloor","yRate"])$(id).textContent="–";
+  }
+
+  if(best){
+    const [t,m]=best.split("|");
+    $("bestName").innerHTML=`<span class="ic ${t}"></span>${t} ${m}`;
+    $("bestSub").innerHTML=`${perTxt(best)} pts per ${CUR==="USD"?"$1K":"ETH"} at ${money(FLOORS[best].floor)} · ${vs(best)} vs GLHFER`+(ranked[1]?`<br>Runner-up: ${esc(label(ranked[1]))} (${perTxt(ranked[1])})`:"");
+  }
+  $("mGlhf").textContent=GLHF?money(GLHF.floor):"–";
+  const cheapest=ROMS.map(([t,m])=>t+"|"+m).filter(k=>FLOORS[k]&&FLOORS[k].floor!=null).sort((a,b)=>FLOORS[a].floor-FLOORS[b].floor)[0];
+  $("mCheap").textContent=cheapest?`${label(cheapest)} · ${money(FLOORS[cheapest].floor)}`:"–";
+  $("mGiga").textContent=FLOORS["Giga|"]&&FLOORS["Giga|"].floor!=null?money(FLOORS["Giga|"].floor):"–";
+  $("mEth").textContent=ETHUSD?"$"+num(ETHUSD,0):"–";
+  showGsrc();
+}
+
+function showGsrc(){
+  const el=$("gsrc");
+  if(!GLHF){el.textContent=FTIME?"GLHF floor unavailable. Type a value.":"Loading GLHF floor…";return}
+  const usd=CUR==="USD"&&ETHUSD&&g()>0?` ≈ ${money(g())}`:"";
+  const link=`<a href="https://opensea.io/collection/${esc(GLHF.slug||"")}" target="_blank" rel="noopener">GLHF floor</a>`;
+  el.innerHTML=custom?`Custom value${usd}. ${link}: ${num(GLHF.floor,4)} ETH`:`Using ${link}${usd}`;
 }
 
 function ago(d){const m=Math.round((Date.now()-d)/60000);return m<1?"just now":m<60?`${m} min ago`:`${Math.round(m/60)} h ago`}
@@ -192,46 +277,42 @@ async function loadFloors(fresh){
     const r=await fetch("/api/floors"+(fresh?"?fresh="+Date.now():""));
     const j=await r.json();
     if(!r.ok)throw new Error(j.error||"Couldn't load floors.");
-    FLOORS={};for(const f of j.floors){FLOORS[f.tier+"|"+(f.memory||"")]=f;if(f.currency)FCUR=f.currency}
-    FTIME=new Date(j.updatedAt);showFtime();
+    FLOORS={};for(const f of j.floors)FLOORS[f.tier+"|"+(f.memory||"")]=f;
     GLHF=j.glhf&&j.glhf.floor!=null?j.glhf:null;
+    ETHUSD=j.ethUsd>0?j.ethUsd:(j.strategy&&j.strategy.ethUsd>0?j.strategy.ethUsd:null);
+    if(!ETHUSD&&CUR==="USD")CUR="ETH";
+    FTIME=new Date(j.updatedAt);showFtime();
     $("usefloor").disabled=!GLHF;
-    if(GLHF&&!custom)setG(+GLHF.floor.toFixed(6),false);
-    showGsrc();
-    renderPrices();renderWallet();
-  }catch(err){$("fstatus").textContent=err.message}
+    if(GLHF&&!custom)$("glhfer").value=+GLHF.floor.toFixed(4);
+    render();
+  }catch(err){$("fstatus").textContent=err.message;render()}
   finally{b.disabled=false}
 }
 
 $("wform").addEventListener("submit",async e=>{
   e.preventDefault();
-  const a=$("addr").value.trim();
-  const st=$("wstatus");
-  if(!/^0x[0-9a-fA-F]{40}$/.test(a)){st.hidden=false;st.className="err";st.textContent="Enter a wallet address that starts with 0x and is 42 characters long.";return}
-  $("go").disabled=true;st.hidden=false;st.className="note";st.textContent="Looking up ROMs…";$("wresult").hidden=true;
+  const a=$("addr").value.trim(),st=$("wstatus");
+  if(!/^0x[0-9a-fA-F]{40}$/.test(a)){st.className="err";st.textContent="Enter a wallet address that starts with 0x and is 42 characters long.";return}
+  $("go").disabled=true;st.className="sub";st.textContent="Looking up ROMs…";
   try{
     const r=await fetch("/api/wallet?address="+encodeURIComponent(a));
     const j=await r.json();
     if(!r.ok)throw new Error(j.error||"Lookup failed.");
-    lastRoms=j.roms;st.hidden=true;renderWallet();
+    lastRoms=j.roms;st.textContent=`Showing ${a.slice(0,6)}…${a.slice(-4)}`;render();
     try{localStorage.setItem("addr",a)}catch(_){}
   }catch(err){st.className="err";st.textContent=err.message}
   finally{$("go").disabled=false}
 });
 
-function showGsrc(){
-  const el=$("gsrc");
-  if(!GLHF){el.innerHTML="GLHF floor unavailable. Type a value.";return}
-  const link=GLHF.slug?`<a href="https://opensea.io/collection/${esc(GLHF.slug)}" target="_blank" rel="noopener" style="color:inherit">GLHF floor</a>`:"GLHF floor";
-  el.innerHTML=custom?`Custom value. ${link}: ${eth(GLHF.floor)} ${esc(GLHF.currency||"ETH")}`:`Using ${link}: ${eth(GLHF.floor)} ${esc(GLHF.currency||"ETH")}`;
-}
-function setG(v,isCustom){$("glhfer").value=v;custom=isCustom;renderPrices();renderWallet();if(GLHF)showGsrc()}
-// Typing: only recalculate, never rewrite the box (so "0." or "0,3" can be typed)
-$("glhfer").addEventListener("input",()=>{custom=true;renderPrices();renderWallet();if(GLHF)showGsrc()});
+// Typing only recalculates; it never rewrites the box, so decimals type normally
+$("glhfer").addEventListener("input",()=>{custom=true;render()});
+$("usefloor").addEventListener("click",()=>{if(GLHF){$("glhfer").value=+GLHF.floor.toFixed(4);custom=false;render()}});
 $("refresh").addEventListener("click",()=>loadFloors(true));
-$("usefloor").addEventListener("click",()=>{if(GLHF)setG(+GLHF.floor.toFixed(6),false)});
+function setCur(c){CUR=c;try{localStorage.setItem("cur",c)}catch(_){}render()}
+$("curEth").addEventListener("click",()=>setCur("ETH"));
+$("curUsd").addEventListener("click",()=>setCur("USD"));
 try{const ad=localStorage.getItem("addr");if(ad)$("addr").value=ad}catch(_){}
-renderPrices();
+render();
 loadFloors(false);
 setInterval(showFtime,60000);
 </script>
