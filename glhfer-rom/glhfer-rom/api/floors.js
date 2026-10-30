@@ -89,6 +89,15 @@ async function strategyPrice() {
   return { symbol: "GLHFSTR", contract: STRATEGY, usd, ethUsd, eth: usd / ethUsd };
 }
 
+// ETH price in USD (for the ETH/USD switch), via GeckoTerminal WETH price
+async function ethUsdPrice() {
+  const r = await fetch(`https://api.geckoterminal.com/api/v2/simple/networks/eth/token_price/${WETH}`, { headers: { accept: "application/json" } });
+  if (!r.ok) throw new Error(`GeckoTerminal returned HTTP ${r.status} for the ETH price`);
+  const v = parseFloat((await r.json())?.data?.attributes?.token_prices?.[WETH]);
+  if (!(v > 0)) throw new Error("No ETH price found");
+  return v;
+}
+
 export default async function handler(req, res) {
   if (!KEY) {
     return res.status(500).json({ error: "Floors need an OpenSea API key. Add OPENSEA_API_KEY in Vercel's environment variables and redeploy." });
@@ -97,7 +106,9 @@ export default async function handler(req, res) {
   const errors = [];
   let glhf = null;
   let strategy = null;
-  const [g, st] = await Promise.allSettled([glhfFloor(), strategyPrice()]);
+  let ethUsd = null;
+  const [g, st, eu] = await Promise.allSettled([glhfFloor(), strategyPrice(), ethUsdPrice()]);
+  if (eu.status === "fulfilled") ethUsd = eu.value; else errors.push(eu.reason.message);
   if (g.status === "fulfilled") glhf = g.value; else errors.push(g.reason.message);
   if (st.status === "fulfilled") strategy = st.value; else errors.push(st.reason.message);
   // A few at a time, to stay under OpenSea's rate limit
@@ -120,5 +131,5 @@ export default async function handler(req, res) {
     "Cache-Control",
     fresh ? "no-store" : "public, s-maxage=3600, stale-while-revalidate=600"
   );
-  return res.status(200).json({ slug: SLUG, updatedAt: new Date().toISOString(), glhf, strategy, floors: results, errors });
+  return res.status(200).json({ slug: SLUG, updatedAt: new Date().toISOString(), glhf, strategy, ethUsd, floors: results, errors });
 }
